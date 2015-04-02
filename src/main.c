@@ -7,14 +7,13 @@
 
 #define N 1000
 
+void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples);
+
 int main() {
 	// file I/O variables
 	FILE *stream = fopen("test_signal_100Hz_50kHzFs.csv","r");
-	float all_samples[300000];
-	float samples_section[250][N];
-	char *curr_num;
+	float input_samples[N];
 	int i,j;
-	char line[3000000];
 
 	// plplot variables
 	PLFLT x[N],y[N];
@@ -36,33 +35,12 @@ int main() {
 	}
 
 	// grab the info from the file
-	fgets(line,3000000,stream);
-
-	curr_num = strtok(line,",");
-	i = 0;
-	
-	while(curr_num != NULL) 
-	{
-		//printf("%f\n",strtof(curr_num,NULL));
-		all_samples[i] = strtof(curr_num,NULL);
-		i++;
-		curr_num = strtok(NULL,",");
-	}
-
-	for(i = 0;i < 250;i++)
-	{
-		for(j = 0;j < N;j++)
-		{
-			samples_section[i][j] = all_samples[(i+1)*j];
-			//printf("%f ",samples_section[i][j]);
-		}
-		//printf("\n");
-	}
+	retrieve_samples_csv(stream,N,input_samples);
 
 	for(j = 0;j < N;j++)
 	{
 		x[j] = j;
-		y[j] = (PLFLT) samples_section[1][j];
+		y[j] = (PLFLT) input_samples[j];
 	}
 
 	plsdev("xwin");
@@ -83,7 +61,7 @@ int main() {
 	for(i = 0;i<N/2;i++)
 	{
 		y[i] = sqrt((freq_domain_array[i][0] * freq_domain_array[i][0]) + (freq_domain_array[i][1] * freq_domain_array[i][1]));
-		printf("%f\n",y[i]);
+		//printf("%f\n",y[i]);
 	}
 
 	plenv(xmin,xmax/2,ymin,ymax,0,0);
@@ -96,3 +74,17 @@ int main() {
 
 	return 0;
 }
+
+void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples)
+{
+	char line[num_samples*100];
+	char *curr_num;
+	int i;
+	fgets(line,num_samples*100,stream);
+	
+	for(curr_num = strtok(line,","),i=0; curr_num != NULL && i<num_samples; curr_num = strtok(NULL,","),i++)
+	{
+		input_samples[i] = (float) strtof(curr_num,NULL);
+	}
+}
+
