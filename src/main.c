@@ -9,7 +9,8 @@
 
 void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples);
 
-int main() {
+int main() 
+{
 	// file I/O variables
 	FILE *stream = fopen("test_signal_100Hz_50kHzFs.csv","r");
 	float input_samples[N];
@@ -37,12 +38,14 @@ int main() {
 	// grab the info from the file
 	retrieve_samples_csv(stream,N,input_samples);
 
+	// prep for time-domain display
 	for(j = 0;j < N;j++)
 	{
 		x[j] = j;
 		y[j] = (PLFLT) input_samples[j];
 	}
 
+	// init plplot and set up the window
 	plsdev("xwin");
 	plinit();
 
@@ -53,6 +56,7 @@ int main() {
 
 	plline(N,x,y);
 
+	// take prepare data for fftw and take fft
 	for(i = 0;i<N;i++)
 	{
 		time_domain_array[i] = (double) y[i];
@@ -64,10 +68,13 @@ int main() {
 		//printf("%f\n",y[i]);
 	}
 
+	// display fft
 	plenv(xmin,xmax/2,ymin,ymax,0,0);
 	pllab("x","y = FFT(y)","FFT of previous sine wave");
 	plline(xmax/2,x,y);
 
+	
+	// clean up
 	fftw_destroy_plan(fft_plan);
 	fftw_free(time_domain_array);fftw_free(freq_domain_array);
 	plend();
@@ -75,6 +82,8 @@ int main() {
 	return 0;
 }
 
+// function retrieve_samples_csv
+// pulls num_samples from input csv file stream and puts them into the array specified by input_samples
 void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples)
 {
 	char line[num_samples*100];
