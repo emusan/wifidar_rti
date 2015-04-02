@@ -8,6 +8,7 @@
 #define N 1000
 
 void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples);
+void amplitude(fftw_complex *complex_array,double *amplitude_array,int length);
 
 int main() 
 {
@@ -56,22 +57,22 @@ int main()
 
 	plline(N,x,y);
 
-	// take prepare data for fftw and take fft
+	// take prepared data for fftw and take fft
 	for(i = 0;i<N;i++)
 	{
 		time_domain_array[i] = (double) y[i];
 	}
 	fftw_execute(fft_plan);
-	for(i = 0;i<N/2;i++)
-	{
-		y[i] = sqrt((freq_domain_array[i][0] * freq_domain_array[i][0]) + (freq_domain_array[i][1] * freq_domain_array[i][1]));
-		//printf("%f\n",y[i]);
-	}
+	amplitude(freq_domain_array,y,N/2);
 
 	// display fft
+	/*
 	plenv(xmin,xmax/2,ymin,ymax,0,0);
 	pllab("x","y = FFT(y)","FFT of previous sine wave");
 	plline(xmax/2,x,y);
+	*/
+
+	
 
 	
 	// clean up
@@ -97,3 +98,12 @@ void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples)
 	}
 }
 
+void amplitude(fftw_complex *complex_array,double *amplitude_array,int length)
+{
+	int i;
+
+	for (i = 0; i<length;i++)
+	{
+		amplitude_array[i] = sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1]));
+	}
+}
