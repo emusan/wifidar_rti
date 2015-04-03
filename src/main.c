@@ -19,7 +19,11 @@ int main()
 
 	// plplot variables
 	PLFLT x[N],y[N];
+	PLFLT **z;
 	PLFLT xmin = 0.,xmax = N,ymin = -1.,ymax = 1.;
+
+	PLINT xint = N/2;
+	PLINT yint = 1;
 
 	// fftw variables
 	fftw_complex *freq_domain_array;
@@ -71,13 +75,29 @@ int main()
 	pllab("x","y = FFT(y)","FFT of previous sine wave");
 	plline(xmax/2,x,y);
 	*/
-
 	
+	plAlloc2dGrid(&z,N/2,1);
+	if(NULL == z)
+	{
+		printf("z not allocated properly");
+		return 0;
+	}
+	for(i = 0;i < N/2;i++)
+	{
+		z[i][0] = y[i];
+		//printf("%f\n",z[i][1]);
+	}
+
+	plenv(xmin,xmax/2,-1.0,+1.0,0,0);
+	pladv(2);
+
+	plimage((const PLFLT * const *)(z),xint,yint,1.0,(PLFLT) xint,-0.5,(PLFLT) .5,-1.0,550.0,1.0,(PLFLT) xint,-0.5,(PLFLT) 0.5);
 
 	
 	// clean up
 	fftw_destroy_plan(fft_plan);
 	fftw_free(time_domain_array);fftw_free(freq_domain_array);
+	plFree2dGrid(z,xint,yint);
 	plend();
 
 	return 0;
