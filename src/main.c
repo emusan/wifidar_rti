@@ -38,8 +38,8 @@ int main()
 	fftw_plan fft_plan;
 
 	// fftw init stuff
-	time_domain_array =  fftw_malloc(sizeof(double) * SAMPLES_PER_WAVEFORM);
-	freq_domain_array =  fftw_malloc(sizeof(fftw_complex) * SAMPLES_RTI);
+	time_domain_array = (double *) fftw_malloc(sizeof(double) * SAMPLES_PER_WAVEFORM);
+	freq_domain_array = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * SAMPLES_RTI);
 	fft_plan = fftw_plan_dft_r2c_1d(SAMPLES_PER_WAVEFORM,time_domain_array,freq_domain_array,FFTW_ESTIMATE);
 	if(0 == fft_plan)
 	{
@@ -110,18 +110,17 @@ int main()
 		if(WAVEFORM_BUFFER_SIZE-1 == j)
 		{
 			rti_running = 0;
-		} else
-		{
+		} else {
 			j++;
 		}
 	}
 
 	// clean up
+	plFree2dGrid(rti_z,rti_xint,rti_yint);
+	plend();
 	fftw_destroy_plan(fft_plan);
 	fftw_free(freq_domain_array);
 	fftw_free(time_domain_array);
-	plFree2dGrid(rti_z,rti_xint,rti_yint);
-	plend();
 
 	return 0;
 }
