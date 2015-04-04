@@ -5,25 +5,32 @@
 #include <math.h>
 #include "plplot.h"
 
-#define N 1000
+#define SAMPLE_RATE 50000
+#define RAMP_FREQ 100
+#define SAMPLES_PER_WAVEFORM SAMPLE_RATE/RAMP_FREQ
+#define WAVEFORM_BUFFER_SIZE 30
+#define SAMPLES_RTI SAMPLES_PER_WAVEFORM/2 + 1
 
 void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples);
 void amplitude(fftw_complex *complex_array,double *amplitude_array,int length);
 
 int main() 
 {
-	// file I/O variables
-	FILE *stream = fopen("test_signal_100Hz_50kHzFs.csv","r");
-	float input_samples[N];
+	// general use variables
 	int i,j;
 
-	// plplot variables
-	PLFLT x[N],y[N];
-	PLFLT **z;
-	PLFLT xmin = 0.,xmax = N,ymin = -1.,ymax = 1.;
+	// file I/O variables
+	FILE *stream = fopen("test_signal_100Hz_50kHzFs.csv","r");
+	float input_samples[SAMPLES_PER_WAVEFORM];
 
-	PLINT xint = N/2;
-	PLINT yint = 1;
+	// plplot variables
+	PLFLT time_x[SAMPLES_PER_WAVEFORM],time_y[SAMPLES_PER_WAVEFORM];
+	PLFLT time_xmin = 0.,time_xmax = SAMPLES_PER_WAVEFORM;
+	PLFLT time_ymin = -1.,time_ymax = 1.;
+	PLFLT **rti_z;
+	PLFLT rti_xmin = 0.,rti_xmax = SAMPLES_RTI;
+	PLFLT rti_ymin = -30.,rti_ymax = 0.;
+	PLINT rti_xint = SAMPLES_RTI,rti_yint = WAVEFORM_BUFFER_SIZE;
 
 	// fftw variables
 	fftw_complex *freq_domain_array;
@@ -31,73 +38,89 @@ int main()
 	fftw_plan fft_plan;
 
 	// fftw init stuff
-	time_domain_array = (double*) fftw_malloc(sizeof(double) * N);
-	freq_domain_array = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * ((N/2)+1));
-	fft_plan = fftw_plan_dft_r2c_1d(N,time_domain_array,freq_domain_array,FFTW_ESTIMATE);
+	time_domain_array =  fftw_malloc(sizeof(double) * SAMPLES_PER_WAVEFORM);
+	freq_domain_array =  fftw_malloc(sizeof(fftw_complex) * SAMPLES_RTI);
+	fft_plan = fftw_plan_dft_r2c_1d(SAMPLES_PER_WAVEFORM,time_domain_array,freq_domain_array,FFTW_ESTIMATE);
 	if(0 == fft_plan)
 	{
 		printf("there has been a problem creating the plan :(");
 		return 1;
 	}
 
-	// grab the info from the file
-	retrieve_samples_csv(stream,N,input_samples);
-
-	// prep for time-domain display
-	for(j = 0;j < N;j++)
-	{
-		x[j] = j;
-		y[j] = (PLFLT) input_samples[j];
-	}
-
 	// init plplot and set up the window
 	plsdev("xwin");
 	plinit();
-
 	plssub(2,1);
-	plenv(xmin,xmax,ymin,ymax,0,0);
-	pladv(1);
-	pllab("x","y = sin(2*pi*100*x)","Simple sine plot");
+	plenv(time_xmin,time_xmax,time_ymin,time_ymax,0,0);
+	plenv(rti_xmin,rti_xmax,rti_ymin,rti_ymax,0,0);
 
-	plline(N,x,y);
-
-	// take prepared data for fftw and take fft
-	for(i = 0;i<N;i++)
-	{
-		time_domain_array[i] = (double) y[i];
-	}
-	fftw_execute(fft_plan);
-	amplitude(freq_domain_array,y,N/2);
-
-	// display fft
-	/*
-	plenv(xmin,xmax/2,ymin,ymax,0,0);
-	pllab("x","y = FFT(y)","FFT of previous sine wave");
-	plline(xmax/2,x,y);
-	*/
-	
-	plAlloc2dGrid(&z,N/2,1);
-	if(NULL == z)
+	plAlloc2dGrid(&rti_z,rti_xint,rti_yint);
+	if(NULL == rti_z)
 	{
 		printf("z not allocated properly");
 		return 0;
 	}
-	for(i = 0;i < N/2;i++)
+
+	char line[1000000];
+	char *curr_num;
+	fgets(line,1000000,stream);
+	curr_num = strtok(line,",");
+
+	int rti_running = 1;
+	j = 0;
+
+	while(1 == rti_running)
 	{
-		z[i][0] = y[i];
-		//printf("%f\n",z[i][1]);
+		// take in samples
+		for(curr_num = strtok(NULL,","),i=0; curr_num != NULL && i<SAMPLES_PER_WAVEFORM; curr_num = strtok(NULL,","),i++)
+		{
+			input_samples[i] = (float) strtof(curr_num,NULL);
+		}
+
+		
+		// display time domain
+		for(i = 0;i < SAMPLES_PER_WAVEFORM;i++)
+		{
+			time_x[i] = i;
+			time_y[i] = (PLFLT) input_samples[i];
+		}
+		pladv(1);
+		pllab("x","y = sin(2*pi*100*x)","Simple sine plot");
+
+		plline(SAMPLES_PER_WAVEFORM,time_x,time_y);
+
+		// take FFT
+		for(i = 0;i<SAMPLES_PER_WAVEFORM;i++)
+		{
+			time_domain_array[i] = (double) time_y[i];
+		}
+		fftw_execute(fft_plan);
+		amplitude(freq_domain_array,time_y,SAMPLES_RTI);
+		
+		// display on RTI
+		for(i = 0;i < SAMPLES_RTI;i++)
+		{
+			rti_z[i][j] = time_y[i];
+		}
+
+		pladv(2);
+
+		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-1.0,550.0,1.0,(PLFLT) rti_xint,-30.,0.0);
+
+		if(WAVEFORM_BUFFER_SIZE-1 == j)
+		{
+			rti_running = 0;
+		} else
+		{
+			j++;
+		}
 	}
 
-	plenv(xmin,xmax/2,-1.0,+1.0,0,0);
-	pladv(2);
-
-	plimage((const PLFLT * const *)(z),xint,yint,1.0,(PLFLT) xint,-0.5,(PLFLT) .5,-1.0,550.0,1.0,(PLFLT) xint,-0.5,(PLFLT) 0.5);
-
-	
 	// clean up
 	fftw_destroy_plan(fft_plan);
-	fftw_free(time_domain_array);fftw_free(freq_domain_array);
-	plFree2dGrid(z,xint,yint);
+	fftw_free(freq_domain_array);
+	fftw_free(time_domain_array);
+	plFree2dGrid(rti_z,rti_xint,rti_yint);
 	plend();
 
 	return 0;
