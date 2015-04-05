@@ -7,7 +7,7 @@
 
 #define SAMPLE_RATE 50000
 #define RAMP_FREQ 100
-#define SAMPLES_PER_WAVEFORM SAMPLE_RATE/RAMP_FREQ
+#define SAMPLES_PER_WAVEFORM (SAMPLE_RATE/RAMP_FREQ)
 #define WAVEFORM_BUFFER_SIZE 30
 #define SAMPLES_RTI (SAMPLES_PER_WAVEFORM/2 + 1)
 
@@ -49,11 +49,11 @@ int main()
 
 	// init plplot and set up the window
 	plsdev("xwin");
-	plinit();
-	plssub(2,1);
+	plstar(2,1);
 	plenv(time_xmin,time_xmax,time_ymin,time_ymax,0,0);
 	pllab("x","y = sin(2*pi*100*x)","Simple sine plot");
 	plenv(rti_xmin,rti_xmax,rti_ymin,rti_ymax,0,0);
+	pllab("Distance (samples)","time (s)","RTI");
 
 	plAlloc2dGrid(&rti_z,rti_xint,rti_yint);
 	if(NULL == rti_z)
@@ -82,10 +82,13 @@ int main()
 		{
 			time_x[i] = i;
 			time_y[i] = (PLFLT) input_samples[i];
+			//time_y[i] = ((float)i)/SAMPLES_PER_WAVEFORM;
+			//printf("%f %f\n",time_x[i],time_y[i]);
 		}
 		pladv(1);
 
-		plline(SAMPLES_PER_WAVEFORM,time_x,time_y);
+		//plline(SAMPLES_PER_WAVEFORM,time_x,time_y);
+		plpoin(SAMPLES_PER_WAVEFORM,time_x,time_y,1);
 
 		// take FFT
 		for(i = 0;i<SAMPLES_PER_WAVEFORM;i++)
