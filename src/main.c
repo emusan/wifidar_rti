@@ -105,7 +105,7 @@ int main()
 		// display on RTI
 		for (k = 0;k<WAVEFORM_BUFFER_SIZE;k++)
 		{
-			for(i = 0;i<SAMPLES_PER_WAVEFORM;i++)
+			for(i = 0;i<SAMPLES_RTI;i++)
 			{
 				if(WAVEFORM_BUFFER_SIZE - 1 == k)
 				{
@@ -122,7 +122,7 @@ int main()
 
 		plsstrm(1);
 
-		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-1.0,550.0,1.0,(PLFLT) rti_xint,-30.,0.0);
+		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-30.0,550.0,1.0,(PLFLT) rti_xint,-30.,0.0);
 	}
 
 	// clean up
@@ -141,6 +141,6 @@ void amplitude(fftw_complex *complex_array,double *amplitude_array,int length)
 
 	for (i = 0; i<length;i++)
 	{
-		amplitude_array[i] = log(sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1])));
+		amplitude_array[i] = sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1]));
 	}
 }
