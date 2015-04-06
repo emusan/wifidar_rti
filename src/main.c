@@ -7,7 +7,7 @@
 
 #define SAMPLE_RATE 50000
 #define RAMP_FREQ 100
-#define SAMPLES_PER_WAVEFORM (SAMPLE_RATE/RAMP_FREQ)
+#define SAMPLES_PER_WAVEFORM (SAMPLE_RATE/RAMP_FREQ) - 1
 #define WAVEFORM_BUFFER_SIZE 30
 #define SAMPLES_RTI (SAMPLES_PER_WAVEFORM/2 + 1)
 
@@ -17,7 +17,7 @@ void amplitude(fftw_complex *complex_array,double *amplitude_array,int length);
 int main() 
 {
 	// general use variables
-	int i,j;
+	int i,j,k;
 
 	// file I/O variables
 	FILE *stream = fopen("test_signal_100Hz_50kHzFs.csv","r");
@@ -49,9 +49,12 @@ int main()
 
 	// init plplot and set up the window
 	plsdev("xwin");
-	plstar(2,1);
+	plinit();
 	plenv(time_xmin,time_xmax,time_ymin,time_ymax,0,0);
 	pllab("x","y = sin(2*pi*100*x)","Simple sine plot");
+	plsstrm(1);
+	plsdev("xwin");
+	plinit();
 	plenv(rti_xmin,rti_xmax,rti_ymin,rti_ymax,0,0);
 	pllab("Distance (samples)","time (s)","RTI");
 
@@ -85,7 +88,7 @@ int main()
 			//time_y[i] = ((float)i)/SAMPLES_PER_WAVEFORM;
 			//printf("%f %f\n",time_x[i],time_y[i]);
 		}
-		pladv(1);
+		plsstrm(0);
 
 		//plline(SAMPLES_PER_WAVEFORM,time_x,time_y);
 		plpoin(SAMPLES_PER_WAVEFORM,time_x,time_y,1);
@@ -100,15 +103,26 @@ int main()
 		amplitude(freq_domain_array,time_y,SAMPLES_RTI);
 		
 		// display on RTI
-		for(i = 0;i < SAMPLES_RTI;i++)
+		for (k = 0;k<WAVEFORM_BUFFER_SIZE;k++)
+		{
+			for(i = 0;i<SAMPLES_PER_WAVEFORM;i++)
+			{
+				if(WAVEFORM_BUFFER_SIZE - 1 == k)
+				{
+					rti_z[i][k] = time_y[i];
+				} else {
+					rti_z[i][k] = rti_z[i][k+1];
+				}
+			}
+		}
+		/*for(i = 0;i < SAMPLES_RTI;i++)
 		{
 			rti_z[i][j] = time_y[i];
-		}
+		}*/
 
-		pladv(2);
+		plsstrm(1);
 
 		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-1.0,550.0,1.0,(PLFLT) rti_xint,-30.,0.0);
-		
 	}
 
 	// clean up
@@ -127,6 +141,6 @@ void amplitude(fftw_complex *complex_array,double *amplitude_array,int length)
 
 	for (i = 0; i<length;i++)
 	{
-		amplitude_array[i] = sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1]));
+		amplitude_array[i] = log(sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1])));
 	}
 }
