@@ -5,10 +5,10 @@
 #include <math.h>
 #include "plplot.h"
 
-#define SAMPLE_RATE 50000
-#define RAMP_FREQ 100
-#define SAMPLES_PER_WAVEFORM (SAMPLE_RATE/RAMP_FREQ) - 1
-#define WAVEFORM_BUFFER_SIZE 30
+#define SAMPLE_RATE 48000
+#define RAMP_FREQ 50
+#define SAMPLES_PER_WAVEFORM (SAMPLE_RATE/RAMP_FREQ)
+#define WAVEFORM_BUFFER_SIZE 1000
 #define SAMPLES_RTI (SAMPLES_PER_WAVEFORM/2 + 1)
 
 void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples);
@@ -18,15 +18,17 @@ int main()
 {
 	// general use variables
 	int i,j,k;
+	//int i,j;
 
 	// file I/O variables
-	FILE *stream = fopen("test_signal_100Hz_50kHzFs.csv","r");
-	float input_samples[SAMPLES_PER_WAVEFORM];
+	FILE *stream = fopen("samples_good.txt","r");
+	double input_samples[SAMPLES_PER_WAVEFORM];
+	double input_samples_delay[SAMPLES_PER_WAVEFORM];
 
 	// plplot variables
-	PLFLT time_x[SAMPLES_PER_WAVEFORM],time_y[SAMPLES_PER_WAVEFORM];
-	PLFLT time_xmin = 0.,time_xmax = SAMPLES_PER_WAVEFORM;
-	PLFLT time_ymin = -1.,time_ymax = 1.;
+	//PLFLT time_x[SAMPLES_PER_WAVEFORM],time_y[SAMPLES_PER_WAVEFORM];
+	/*PLFLT time_xmin = 0.,time_xmax = SAMPLES_PER_WAVEFORM;
+	PLFLT time_ymin = -1.,time_ymax = 1.;*/
 	PLFLT **rti_z;
 	PLFLT rti_xmin = 0.,rti_xmax = SAMPLES_RTI;
 	PLFLT rti_ymin = -30.,rti_ymax = 0.;
@@ -48,10 +50,10 @@ int main()
 	}
 
 	// init plplot and set up the window
-	plsdev("xwin");
+	/*plsdev("xwin");
 	plinit();
 	plenv(time_xmin,time_xmax,time_ymin,time_ymax,0,0);
-	pllab("x","y = sin(2*pi*100*x)","Simple sine plot");
+	pllab("x","y = sin(2*pi*100*x)","Simple sine plot");*/
 	plsstrm(1);
 	plsdev("xwin");
 	plinit();
@@ -65,33 +67,68 @@ int main()
 		return 0;
 	}
 
-	char line[1000000];
-	char *curr_num;
-	fgets(line,1000000,stream);
-	curr_num = strtok(line,",");
-
+	char line[20];
+	//char *curr_num;
+	//int temp;
+	//
+	double temp_thing;
 
 	for(j = 0;j < WAVEFORM_BUFFER_SIZE;j++)
 	{
 		// take in samples
-		for(curr_num = strtok(NULL,","),i=0; curr_num != NULL && i<SAMPLES_PER_WAVEFORM; curr_num = strtok(NULL,","),i++)
+		/*for(curr_num = strtok(NULL,","),i=0; curr_num != NULL && i<SAMPLES_PER_WAVEFORM; curr_num = strtok(NULL,","),i++)
 		{
 			input_samples[i] = (float) strtof(curr_num,NULL);
-		}
+		}*/
 
-		
+		//printf("%i\n",j);
+		for(i = 0;i < SAMPLES_PER_WAVEFORM;i++)
+		{
+			temp_thing = (double) strtof(fgets(line,sizeof(line),stream),NULL);
+			if(j > 0)
+			{
+				input_samples[i] = temp_thing - input_samples_delay[i];
+			} else {
+				input_samples[i] = temp_thing;
+			}
+			input_samples_delay[i] = temp_thing;
+			//printf("%f\n",input_samples[i]);
+			/*
+			temp = 0;
+			for(curr_num = strtok(line," ");curr_num !=NULL && (strcmp(curr_num,"\n") != 0);curr_num = strtok(NULL," "))
+			{
+				if(temp == 1) 
+				{
+					if(j > 0)
+					{
+						//input_samples[i] = ((float) strtol(curr_num,NULL,16)) - input_samples[i];
+						input_samples[i] = (double) strtof(curr_num,NULL) - input_samples[i];
+					}
+					else
+					{
+						input_samples[i] = (double) strtof(curr_num,NULL);
+					}
+					//printf("%f\n",input_samples[i]);
+				}
+				temp = 1;
+			}
+			*/
+		}
+		//printf("----");
+
+		/*
 		// display time domain
 		for(i = 0;i < SAMPLES_PER_WAVEFORM;i++)
 		{
-			time_x[i] = i;
+			//time_x[i] = i;
 			time_y[i] = (PLFLT) input_samples[i];
-			//time_y[i] = ((float)i)/SAMPLES_PER_WAVEFORM;
 			//printf("%f %f\n",time_x[i],time_y[i]);
 		}
-		plsstrm(0);
+		//plsstrm(0);
 
 		//plline(SAMPLES_PER_WAVEFORM,time_x,time_y);
-		plpoin(SAMPLES_PER_WAVEFORM,time_x,time_y,1);
+		//plpoin(SAMPLES_PER_WAVEFORM,time_x,time_y,1);
+		*/
 
 		// take FFT
 		for(i = 0;i<SAMPLES_PER_WAVEFORM;i++)
@@ -100,7 +137,7 @@ int main()
 		}
 		fftw_execute(fft_plan);
 		
-		amplitude(freq_domain_array,time_y,SAMPLES_RTI);
+		amplitude(freq_domain_array,time_domain_array,SAMPLES_RTI);
 		
 		// display on RTI
 		for (k = 0;k<WAVEFORM_BUFFER_SIZE;k++)
@@ -109,21 +146,23 @@ int main()
 			{
 				if(WAVEFORM_BUFFER_SIZE - 1 == k)
 				{
-					rti_z[i][k] = time_y[i];
+					rti_z[i][k] = time_domain_array[i];
+					//printf("%f\n",rti_z[i][k]);
 				} else {
 					rti_z[i][k] = rti_z[i][k+1];
 				}
 			}
 		}
+		//printf("-----");
 		/*for(i = 0;i < SAMPLES_RTI;i++)
 		{
-			rti_z[i][j] = time_y[i];
+			rti_z[i][j] = time_domain_array[i];
 		}*/
-
-		plsstrm(1);
-
-		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-30.0,550.0,1.0,(PLFLT) rti_xint,-30.,0.0);
 	}
+
+	plsstrm(1);
+
+	plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-9.0,2.0,1.0,(PLFLT) rti_xint,-30.,0.0);
 
 	// clean up
 	fftw_destroy_plan(fft_plan);
@@ -141,6 +180,6 @@ void amplitude(fftw_complex *complex_array,double *amplitude_array,int length)
 
 	for (i = 0; i<length;i++)
 	{
-		amplitude_array[i] = sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1]));
+		amplitude_array[i] = log10(sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1])));
 	}
 }
