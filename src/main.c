@@ -7,7 +7,7 @@
 
 #define SAMPLE_RATE 48000
 #define RAMP_FREQ 50
-#define SAMPLES_PER_WAVEFORM (SAMPLE_RATE/RAMP_FREQ)
+#define SAMPLES_PER_WAVEFORM 195
 #define WAVEFORM_BUFFER_SIZE 100
 #define SAMPLES_RTI (SAMPLES_PER_WAVEFORM/2 + 1)
 
@@ -21,9 +21,9 @@ int main()
 	//int i,j;
 
 	// file I/O variables
-	FILE *stream = fopen("samples_good.txt","r");
+	FILE *stream = fopen("/dev/ttyUSB0","r");
 	double input_samples[SAMPLES_PER_WAVEFORM];
-	double input_samples_delay[SAMPLES_PER_WAVEFORM];
+	//double input_samples_delay[SAMPLES_PER_WAVEFORM];
 
 	// plplot variables
 	//PLFLT time_x[SAMPLES_PER_WAVEFORM],time_y[SAMPLES_PER_WAVEFORM];
@@ -70,12 +70,13 @@ int main()
 	//char line[20];
 	//char *curr_num;
 	//int temp;
-	//
+
 	double temp_thing;
 	int foundZero;
 	int currChar;
 	int tempChar;
 	int curr_count = 0;
+	//int debug_count = 0;
 
 	while(1)
 	{
@@ -96,35 +97,43 @@ int main()
 					while(!foundZero)
 					{
 						currChar = fgetc(stream);
-						if((1 << 8 & currChar) != 0)
+						if((1 << 7 & currChar) != 0)
 						{
+							//debug_count = 0;
 							foundZero = 1;
 							currChar = 0x7F & currChar; // clear out the waveform_start bit
 							tempChar = fgetc(stream);
-							temp_thing = (double)((currChar << 7) | tempChar);
+							temp_thing = (double)((currChar << 6) | tempChar);
 							if(curr_count == 0)
 							{
 								input_samples[i] = temp_thing;
 							} else {
-								input_samples[i] = temp_thing - input_samples_delay[i];
+								input_samples[i] = temp_thing;// - input_samples_delay[i];
 							}
-							printf("found zero!\n");
+							//printf("found zero!\n");
+							//printf("%f ",input_samples[i]);
+							
 						}
 					}
 				} else {
+					//debug_count = debug_count + 1;
 					currChar = fgetc(stream);
 					currChar = 0x7F & currChar;
 					tempChar = fgetc(stream);
-					temp_thing = (double)((currChar << 7) | tempChar);
+					temp_thing = (double)((currChar << 6) | tempChar);
 					if(curr_count == 0)
 					{
 						input_samples[i] = temp_thing;
 					} else {
-						input_samples[i] = temp_thing - input_samples_delay[i];
+						input_samples[i] = temp_thing;// - input_samples_delay[i];
 					}
+					//printf("%f ",temp_thing);
 				}
-				input_samples_delay[i] = temp_thing;
+				//input_samples_delay[i] = temp_thing;
 			}
+			printf("\n");
+			//printf("%i\n",i);
+			//printf("%i",debug_count);
 			//printf("----");
 
 			/*
@@ -161,6 +170,7 @@ int main()
 						//printf("%f\n",rti_z[i][k]);
 					} else {
 						rti_z[i][k] = rti_z[i][k+1];
+						printf("%f\n",rti_z[i][k]);
 					}
 				}
 			}
@@ -173,7 +183,8 @@ int main()
 
 		plsstrm(1);
 
-		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-9.0,2.0,1.0,(PLFLT) rti_xint,-30.,0.0);
+		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-0.0,10.0,1.0,(PLFLT) rti_xint,-30.,0.0);
+		//printf("image updated");
 	}
 
 	// clean up
