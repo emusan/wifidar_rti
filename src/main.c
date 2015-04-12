@@ -8,7 +8,7 @@
 #define SAMPLE_RATE 48000
 #define RAMP_FREQ 50
 #define SAMPLES_PER_WAVEFORM (SAMPLE_RATE/RAMP_FREQ)
-#define WAVEFORM_BUFFER_SIZE 1000
+#define WAVEFORM_BUFFER_SIZE 100
 #define SAMPLES_RTI (SAMPLES_PER_WAVEFORM/2 + 1)
 
 void retrieve_samples_csv(FILE *stream,int num_samples,float *input_samples);
@@ -67,102 +67,114 @@ int main()
 		return 0;
 	}
 
-	char line[20];
+	//char line[20];
 	//char *curr_num;
 	//int temp;
 	//
 	double temp_thing;
+	int foundZero;
+	int currChar;
+	int tempChar;
+	int curr_count = 0;
 
-	for(j = 0;j < WAVEFORM_BUFFER_SIZE;j++)
+	while(1)
 	{
-		// take in samples
-		/*for(curr_num = strtok(NULL,","),i=0; curr_num != NULL && i<SAMPLES_PER_WAVEFORM; curr_num = strtok(NULL,","),i++)
+		for(j = 0;j < 4;j++)
 		{
-			input_samples[i] = (float) strtof(curr_num,NULL);
-		}*/
+			foundZero = 0;
+			// take in samples
+			/*for(curr_num = strtok(NULL,","),i=0; curr_num != NULL && i<SAMPLES_PER_WAVEFORM; curr_num = strtok(NULL,","),i++)
+			{
+				input_samples[i] = (float) strtof(curr_num,NULL);
+			}*/
 
-		//printf("%i\n",j);
-		for(i = 0;i < SAMPLES_PER_WAVEFORM;i++)
-		{
-			temp_thing = (double) strtof(fgets(line,sizeof(line),stream),NULL);
-			if(j > 0)
+			//printf("%i\n",j);
+			for(i = 0;i < SAMPLES_PER_WAVEFORM;i++)
 			{
-				input_samples[i] = temp_thing - input_samples_delay[i];
-			} else {
-				input_samples[i] = temp_thing;
-			}
-			input_samples_delay[i] = temp_thing;
-			//printf("%f\n",input_samples[i]);
-			/*
-			temp = 0;
-			for(curr_num = strtok(line," ");curr_num !=NULL && (strcmp(curr_num,"\n") != 0);curr_num = strtok(NULL," "))
-			{
-				if(temp == 1) 
+				if(0 == i)
 				{
-					if(j > 0)
+					while(!foundZero)
 					{
-						//input_samples[i] = ((float) strtol(curr_num,NULL,16)) - input_samples[i];
-						input_samples[i] = (double) strtof(curr_num,NULL) - input_samples[i];
+						currChar = fgetc(stream);
+						if((1 << 8 & currChar) != 0)
+						{
+							foundZero = 1;
+							currChar = 0x7F & currChar; // clear out the waveform_start bit
+							tempChar = fgetc(stream);
+							temp_thing = (double)((currChar << 7) | tempChar);
+							if(curr_count == 0)
+							{
+								input_samples[i] = temp_thing;
+							} else {
+								input_samples[i] = temp_thing - input_samples_delay[i];
+							}
+							printf("found zero!\n");
+						}
 					}
-					else
-					{
-						input_samples[i] = (double) strtof(curr_num,NULL);
-					}
-					//printf("%f\n",input_samples[i]);
-				}
-				temp = 1;
-			}
-			*/
-		}
-		//printf("----");
-
-		/*
-		// display time domain
-		for(i = 0;i < SAMPLES_PER_WAVEFORM;i++)
-		{
-			//time_x[i] = i;
-			time_y[i] = (PLFLT) input_samples[i];
-			//printf("%f %f\n",time_x[i],time_y[i]);
-		}
-		//plsstrm(0);
-
-		//plline(SAMPLES_PER_WAVEFORM,time_x,time_y);
-		//plpoin(SAMPLES_PER_WAVEFORM,time_x,time_y,1);
-		*/
-
-		// take FFT
-		for(i = 0;i<SAMPLES_PER_WAVEFORM;i++)
-		{
-			time_domain_array[i] = (double) input_samples[i];
-		}
-		fftw_execute(fft_plan);
-		
-		amplitude(freq_domain_array,time_domain_array,SAMPLES_RTI);
-		
-		// display on RTI
-		for (k = 0;k<WAVEFORM_BUFFER_SIZE;k++)
-		{
-			for(i = 0;i<SAMPLES_RTI;i++)
-			{
-				if(WAVEFORM_BUFFER_SIZE - 1 == k)
-				{
-					rti_z[i][k] = time_domain_array[i];
-					//printf("%f\n",rti_z[i][k]);
 				} else {
-					rti_z[i][k] = rti_z[i][k+1];
+					currChar = fgetc(stream);
+					currChar = 0x7F & currChar;
+					tempChar = fgetc(stream);
+					temp_thing = (double)((currChar << 7) | tempChar);
+					if(curr_count == 0)
+					{
+						input_samples[i] = temp_thing;
+					} else {
+						input_samples[i] = temp_thing - input_samples_delay[i];
+					}
+				}
+				input_samples_delay[i] = temp_thing;
+			}
+			//printf("----");
+
+			/*
+			// display time domain
+			for(i = 0;i < SAMPLES_PER_WAVEFORM;i++)
+			{
+				//time_x[i] = i;
+				time_y[i] = (PLFLT) input_samples[i];
+				//printf("%f %f\n",time_x[i],time_y[i]);
+			}
+			//plsstrm(0);
+
+			//plline(SAMPLES_PER_WAVEFORM,time_x,time_y);
+			//plpoin(SAMPLES_PER_WAVEFORM,time_x,time_y,1);
+			*/
+
+			// take FFT
+			for(i = 0;i<SAMPLES_PER_WAVEFORM;i++)
+			{
+				time_domain_array[i] = (double) input_samples[i];
+			}
+			fftw_execute(fft_plan);
+			
+			amplitude(freq_domain_array,time_domain_array,SAMPLES_RTI);
+			
+			// display on RTI
+			for (k = 0;k<WAVEFORM_BUFFER_SIZE;k++)
+			{
+				for(i = 0;i<SAMPLES_RTI;i++)
+				{
+					if(WAVEFORM_BUFFER_SIZE - 1 == k)
+					{
+						rti_z[i][k] = time_domain_array[i];
+						//printf("%f\n",rti_z[i][k]);
+					} else {
+						rti_z[i][k] = rti_z[i][k+1];
+					}
 				}
 			}
+			//printf("-----");
+			/*for(i = 0;i < SAMPLES_RTI;i++)
+			{
+				rti_z[i][j] = time_domain_array[i];
+			}*/
 		}
-		//printf("-----");
-		/*for(i = 0;i < SAMPLES_RTI;i++)
-		{
-			rti_z[i][j] = time_domain_array[i];
-		}*/
+
+		plsstrm(1);
+
+		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-9.0,2.0,1.0,(PLFLT) rti_xint,-30.,0.0);
 	}
-
-	plsstrm(1);
-
-	plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-9.0,2.0,1.0,(PLFLT) rti_xint,-30.,0.0);
 
 	// clean up
 	fftw_destroy_plan(fft_plan);
