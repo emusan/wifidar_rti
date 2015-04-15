@@ -7,7 +7,7 @@
 
 #define SAMPLE_RATE 48000
 #define RAMP_FREQ 50
-#define SAMPLES_PER_WAVEFORM 195
+#define SAMPLES_PER_WAVEFORM 395
 #define WAVEFORM_BUFFER_SIZE 100
 #define SAMPLES_RTI (SAMPLES_PER_WAVEFORM/2 + 1)
 
@@ -23,7 +23,7 @@ int main()
 	// file I/O variables
 	FILE *stream = fopen("/dev/ttyUSB0","r");
 	double input_samples[SAMPLES_PER_WAVEFORM];
-	//double input_samples_delay[SAMPLES_PER_WAVEFORM];
+	double input_samples_delay[SAMPLES_PER_WAVEFORM];
 
 	// plplot variables
 	//PLFLT time_x[SAMPLES_PER_WAVEFORM],time_y[SAMPLES_PER_WAVEFORM];
@@ -108,7 +108,7 @@ int main()
 							{
 								input_samples[i] = temp_thing;
 							} else {
-								input_samples[i] = temp_thing;// - input_samples_delay[i];
+								input_samples[i] = temp_thing - input_samples_delay[i];
 							}
 							//printf("found zero!\n");
 							//printf("%f ",input_samples[i]);
@@ -125,12 +125,15 @@ int main()
 					{
 						input_samples[i] = temp_thing;
 					} else {
-						input_samples[i] = temp_thing;// - input_samples_delay[i];
+						input_samples[i] = temp_thing - input_samples_delay[i];
 					}
 					//printf("%f ",temp_thing);
 				}
-				//input_samples_delay[i] = temp_thing;
+				input_samples_delay[i] = (double) temp_thing;
+				input_samples[i] = input_samples[i] - 4096;
+				printf("%f ",input_samples[i]);
 			}
+			curr_count++;
 			printf("\n");
 			//printf("%i\n",i);
 			//printf("%i",debug_count);
@@ -170,7 +173,7 @@ int main()
 						//printf("%f\n",rti_z[i][k]);
 					} else {
 						rti_z[i][k] = rti_z[i][k+1];
-						printf("%f\n",rti_z[i][k]);
+						//printf("%f\n",rti_z[i][k]);
 					}
 				}
 			}
@@ -183,7 +186,7 @@ int main()
 
 		plsstrm(1);
 
-		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-0.0,10.0,1.0,(PLFLT) rti_xint,-30.,0.0);
+		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-0.0,200.0,1.0,(PLFLT) rti_xint,-30.,0.0);
 		//printf("image updated");
 	}
 
@@ -203,6 +206,6 @@ void amplitude(fftw_complex *complex_array,double *amplitude_array,int length)
 
 	for (i = 0; i<length;i++)
 	{
-		amplitude_array[i] = log10(sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1])));
+		amplitude_array[i] = 20*log10(sqrt((complex_array[i][0] * complex_array[i][0]) + (complex_array[i][1] * complex_array[i][1])));
 	}
 }
