@@ -130,7 +130,7 @@ int main()
 					//printf("%f ",temp_thing);
 				}
 				input_samples_delay[i] = (double) temp_thing;
-				input_samples[i] = input_samples[i] - 4096;
+				//input_samples[i] = input_samples[i] - 4096;
 				printf("%f ",input_samples[i]);
 			}
 			curr_count++;
