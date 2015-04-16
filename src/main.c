@@ -30,7 +30,7 @@ int main()
 	/*PLFLT time_xmin = 0.,time_xmax = SAMPLES_PER_WAVEFORM;
 	PLFLT time_ymin = -1.,time_ymax = 1.;*/
 	PLFLT **rti_z;
-	PLFLT rti_xmin = 0.,rti_xmax = SAMPLES_RTI;
+	PLFLT rti_xmin = 0.,rti_xmax = 300.0;
 	PLFLT rti_ymin = -30.,rti_ymax = 0.;
 	PLINT rti_xint = SAMPLES_RTI,rti_yint = WAVEFORM_BUFFER_SIZE;
 
@@ -58,7 +58,7 @@ int main()
 	plsdev("xwin");
 	plinit();
 	plenv(rti_xmin,rti_xmax,rti_ymin,rti_ymax,0,0);
-	pllab("Distance (samples)","time (s)","RTI");
+	pllab("Distance (m)","time (s)","RTI");
 
 	plAlloc2dGrid(&rti_z,rti_xint,rti_yint);
 	if(NULL == rti_z)
@@ -186,7 +186,7 @@ int main()
 
 		plsstrm(1);
 
-		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,1.0,(PLFLT) rti_xint,-30.,0.0,-0.0,200.0,1.0,(PLFLT) rti_xint,-30.,0.0);
+		plimage((const PLFLT * const *)(rti_z),rti_xint,rti_yint,0.0,300.,-30.,0.0,-0.0,200.0,1.0,300.0,-30.,0.0);
 		//printf("image updated");
 	}
 
